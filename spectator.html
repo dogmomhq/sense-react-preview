@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sense — Live Spectator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-system, sans-serif; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #1a2a3a; }
+.header h1 { font-size: 16px; font-weight: 600; color: #44ccdd; }
+.controls { display: flex; gap: 8px; align-items: center; }
+.controls button { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.controls button:hover { border-color: #44ccdd; }
+.controls button.active { background: #44ccdd; color: #0d1520; border-color: #44ccdd; }
+.controls select { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 6px 8px; border-radius: 6px; font-size: 12px; }
+.stats-bar { display: flex; gap: 20px; padding: 8px 20px; background: #111d2b; font-size: 11px; color: #667788; }
+.stats-bar span { color: #44ccdd; font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; height: calc(100vh - 90px); }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+
+.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.tile.win-flash { animation: winPulse 0.6s ease-out; }
+.tile.loss-flash { animation: lossPulse 0.6s ease-out; }
+@keyframes winPulse { 0% { box-shadow: 0 0 0 0 rgba(0,212,170,0.5); } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes lossPulse { 0% { box-shadow: 0 0 0 0 rgba(255,71,87,0.5); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.tile-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #2a3a4a; font-size: 9px; }
+.tile-names { color: #8899aa; font-family: monospace; }
+.tile-names .vs { color: #445566; font-size: 7px; margin: 0 3px; }
+.tile-status { padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 600; }
+.tile-status.waiting { background: #2a3a4a; color: #667788; }
+.tile-status.playing { background: rgba(0,200,255,0.15); color: #44ccdd; }
+.tile-status.result { background: rgba(0,212,170,0.15); color: #00d4aa; }
+
+.tile-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; gap: 4px; }
+.tile-img { width: 60%; max-height: 80px; object-fit: contain; border-radius: 4px; border: 1px solid #2a3a4a; }
+.tile-question { font-size: 10px; color: #8899aa; }
+.tile-timer { font-size: 14px; font-weight: 700; color: #44ccdd; font-variant-numeric: tabular-nums; }
+.tile-timer.urgent { color: #ff4757; }
+
+.tile-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 0 6px 6px; }
+.tile-ans { background: #16202e; border: 1px solid #2a3a4a; border-radius: 4px; padding: 4px 2px; text-align: center; font-size: 8px; color: #8899aa; transition: all 0.2s; }
+.tile-ans.p1-pick { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 8px rgba(0,200,255,0.3); }
+.tile-ans.p2-pick { border-color: #ff9f43; background: rgba(255,159,67,0.12); color: #ff9f43; box-shadow: 0 0 8px rgba(255,159,67,0.3); }
+.tile-ans.correct { border-color: #00d4aa; background: rgba(0,212,170,0.15); color: #00d4aa; }
+.tile-ans.wrong { border-color: #ff4757; background: rgba(255,71,87,0.15); color: #ff4757; }
+
+.tile-result { text-align: center; padding: 4px; font-size: 11px; font-weight: 700; }
+.tile-result.win { color: #00d4aa; }
+.tile-result.loss { color: #ff4757; }
+.tile-result.draw { color: #ffa502; }
+
+.tile-scores { display: flex; justify-content: space-around; padding: 3px 8px; font-size: 8px; font-family: monospace; color: #667788; border-top: 1px solid #2a3a4a; }
+.tile-scores .time { color: #44ccdd; }
+
+.tile-idle { display: flex; align-items: center; justify-content: center; height: 100%; color: #445566; font-size: 11px; }
+
+.legend { display: flex; gap: 12px; align-items: center; padding: 4px 20px; font-size: 9px; color: #667788; }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 3px; }
+.legend-dot.p1 { background: #44ccdd; }
+.legend-dot.p2 { background: #ff9f43; }
+.legend-dot.correct { background: #00d4aa; }
+</style>
+</head><body>
+<div class="header">
+  <h1>SENSE — Live Spectator</h1>
+  <div class="controls">
+    <select id="server-select">
+      <option value="wss://web-production-c6ec6.up.railway.app">Preview</option>
+      <option value="wss://web-production-8866e.up.railway.app">Devnet</option>
+    </select>
+    <button id="start-btn">Start 5 Bots</button>
+    <button id="stop-btn" style="display:none">Stop All</button>
+  </div>
+</div>
+<div class="legend">
+  <span><span class="legend-dot p1"></span> Player 1 answer</span>
+  <span><span class="legend-dot p2"></span> Player 2 answer</span>
+  <span><span class="legend-dot correct"></span> Correct answer</span>
+</div>
+<div class="stats-bar">
+  Games played: <span id="total-games">0</span> &nbsp;|&nbsp;
+  Active: <span id="active-count">0</span> &nbsp;|&nbsp;
+  Avg answer time: <span id="avg-time">—</span>
+</div>
+<div class="grid" id="grid"></div>
+
+<script>
+const NAMES = ['SwiftFox','BraveLion','QuickOwl','SlyWolf','CalmBear','BoldHawk','FastDeer','KeenEagle','WiseRaven','SharpTiger'];
+let bots = [];
+let totalGames = 0;
+let answerTimes = [];
+
+function genName() {
+  return NAMES[Math.floor(Math.random()*NAMES.length)] + Math.floor(Math.random()*90+10);
+}
+
+function createTile(idx) {
+  const div = document.createElement('div');
+  div.className = 'tile';
+  div.id = 'tile-' + idx;
+  div.innerHTML = '<div class="tile-idle">Ready</div>';
+  return div;
+}
+
+function renderTile(idx, state) {
+  const tile = document.getElementById('tile-' + idx);
+  if (!tile) return;
+
+  if (state.phase === 'idle' || state.phase === 'queued') {
+    tile.innerHTML = `
+      <div class="tile-header">
+        <div class="tile-names">${state.name}</div>
+        <div class="tile-status waiting">${state.phase === 'queued' ? 'MATCHING...' : 'IDLE'}</div>
+      </div>
+      <div class="tile-body"><div class="tile-idle">${state.phase === 'queued' ? 'Finding opponent...' : 'Waiting to start'}</div></div>`;
+    return;
+  }
+
+  if (state.phase === 'playing' || state.phase === 'answered') {
+    const secs = state.remaining != null ? (state.remaining / 1000).toFixed(1) : '—';
+    const urgent = state.remaining != null && state.remaining < 3000;
+    
+    let ansHtml = '';
+    if (state.options) {
+      ansHtml = state.options.map((opt, i) => {
+        let cls = 'tile-ans';
+        if (state.p1Answer === i) cls += ' p1-pick';
+        if (state.p2Answer === i) cls += ' p2-pick';
+        if (state.phase === 'result' && state.correctIdx === i) cls += ' correct';
+        return `<div class="${cls}">${opt}</div>`;
+      }).join('');
+    }
+
+    tile.innerHTML = `
+      <div class="tile-header">
+        <div class="tile-names">${state.name}<span class="vs">vs</span>${state.opponent || '...'}</div>
+        <div class="tile-status playing">${state.phase === 'answered' ? 'WAITING' : 'LIVE'}</div>
+      </div>
+      <div class="tile-body">
+        ${state.imageUrl ? `<img class="tile-img" src="${state.imageUrl}" onerror="this.style.display='none'">` : ''}
+        <div class="tile-question">${state.questionText || ''}</div>
+        <div class="tile-timer ${urgent ? 'urgent' : ''}">${secs}s</div>
+      </div>
+      <div class="tile-answers">${ansHtml}</div>
+      <div class="tile-scores">
+        <span>${state.name}: <span class="time">${state.myTime != null ? (state.myTime/1000).toFixed(2)+'s' : '—'}</span></span>
+        <span>${state.opponent || '?'}: <span class="time">${state.oppTime != null ? (state.oppTime/1000).toFixed(2)+'s' : '—'}</span></span>
+      </div>`;
+    return;
+  }
+
+  if (state.phase === 'result') {
+    let ansHtml = '';
+    if (state.options) {
+      ansHtml = state.options.map((opt, i) => {
+        let cls = 'tile-ans';
+        if (state.p1Answer === i) cls += ' p1-pick';
+        if (state.p2Answer === i) cls += ' p2-pick';
+        if (state.correctIdx === i) cls += ' correct';
+        if (state.p1Answer === i && i !== state.correctIdx) cls += ' wrong';
+        return `<div class="${cls}">${opt}</div>`;
+      }).join('');
+    }
+
+    const rc = state.result === 'win' ? 'win' : state.result === 'loss' ? 'loss' : 'draw';
+    const rt = state.result === 'win' ? 'WON' : state.result === 'loss' ? 'LOST' : 'DRAW';
+    tile.className = 'tile ' + rc + '-flash';
+
+    tile.innerHTML = `
+      <div class="tile-header">
+        <div class="tile-names">${state.name}<span class="vs">vs</span>${state.opponent || '?'}</div>
+        <div class="tile-status result">${state.reason || ''}</div>
+      </div>
+      <div class="tile-body">
+        ${state.imageUrl ? `<img class="tile-img" src="${state.imageUrl}" onerror="this.style.display='none'">` : ''}
+        <div class="tile-result ${rc}">${rt} ${state.payout ? (state.result==='loss' ? '-$'+state.wager : '+$'+state.payout) : ''}</div>
+      </div>
+      <div class="tile-answers">${ansHtml}</div>
+      <div class="tile-scores">
+        <span>${state.name}: <span class="time">${state.myTime != null ? (state.myTime/1000).toFixed(2)+'s' : '—'}</span></span>
+        <span>${state.opponent || '?'}: <span class="time">${state.oppTime != null ? (state.oppTime/1000).toFixed(2)+'s' : '—'}</span></span>
+      </div>`;
+    return;
+  }
+}
+
+function updateStats() {
+  document.getElementById('total-games').textContent = totalGames;
+  document.getElementById('active-count').textContent = bots.filter(b => b && b.state.phase === 'playing').length;
+  if (answerTimes.length > 0) {
+    const avg = answerTimes.reduce((a,b) => a+b, 0) / answerTimes.length;
+    document.getElementById('avg-time').textContent = (avg/1000).toFixed(2) + 's';
+  }
+}
+
+function createBot(idx) {
+  const serverUrl = document.getElementById('server-select').value;
+  const name = genName();
+  const state = { name, phase: 'idle', matchId: null, options: null, imageUrl: null, questionText: null,
+    p1Answer: null, p2Answer: null, correctIdx: null, remaining: null, myTime: null, oppTime: null,
+    opponent: null, result: null, reason: null, wager: null, payout: null, questionStart: null };
+
+  let ws = null;
+  let timerInterval = null;
+  let answerTimeout = null;
+  let replayTimeout = null;
+  let stopped = false;
+
+  function connect() {
+    if (stopped) return;
+    ws = new WebSocket(serverUrl);
+    
+    ws.onopen = () => {
+      state.phase = 'queued';
+      renderTile(idx, state);
+      ws.send(JSON.stringify({ type: 'queue', name, tier: 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
+    };
+
+    ws.onmessage = (e) => {
+      if (stopped) return;
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === 'ping') {
+        ws.send(JSON.stringify({ type: 'pong', nonce: msg.nonce }));
+        return;
+      }
+
+      if (msg.type === 'async-question') {
+        state.phase = 'playing';
+        state.matchId = msg.matchId;
+        state.options = msg.question.options;
+        state.questionText = msg.question.text;
+        state.imageUrl = serverUrl.replace('wss://','https://').replace('ws://','http://') + '/img/' + msg.question.imageToken;
+        state.p1Answer = null;
+        state.p2Answer = null;
+        state.correctIdx = null;
+        state.remaining = 10000;
+        state.myTime = null;
+        state.oppTime = null;
+        state.result = null;
+        state.questionStart = Date.now();
+        renderTile(idx, state);
+
+        // Countdown timer
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          state.remaining = Math.max(0, 10000 - (Date.now() - state.questionStart));
+          renderTile(idx, state);
+          if (state.remaining <= 0) clearInterval(timerInterval);
+        }, 100);
+
+        // Bot answers after random delay (0.8 - 4s)
+        const delay = 800 + Math.random() * 3200;
+        answerTimeout = setTimeout(() => {
+          if (state.phase !== 'playing' || stopped) return;
+          // Pick random answer (sometimes correct-ish, sometimes not)
+          const pick = Math.floor(Math.random() * state.options.length);
+          state.p1Answer = pick;
+          state.myTime = Date.now() - state.questionStart;
+          state.phase = 'answered';
+          answerTimes.push(state.myTime);
+          renderTile(idx, state);
+          ws.send(JSON.stringify({ type: 'async-answer', matchId: state.matchId, answerIndex: pick, clientTime: state.myTime }));
+        }, delay);
+      }
+
+      if (msg.type === 'async-opponent-found') {
+        state.opponent = msg.opponentName;
+        renderTile(idx, state);
+      }
+
+      if (msg.type === 'async-result') {
+        if (timerInterval) clearInterval(timerInterval);
+        state.phase = 'result';
+        state.result = msg.result;
+        state.reason = msg.reason;
+        state.correctIdx = msg.correctIdx;
+        state.oppTime = msg.opponentTime;
+        state.wager = msg.wager;
+        state.payout = msg.payout;
+        if (msg.opponentAnswer != null) state.p2Answer = msg.opponentAnswer;
+        totalGames++;
+        renderTile(idx, state);
+        updateStats();
+
+        // Auto-replay after 3 seconds
+        replayTimeout = setTimeout(() => {
+          if (stopped) return;
+          state.phase = 'queued';
+          state.matchId = null;
+          renderTile(idx, state);
+          ws.send(JSON.stringify({ type: 'queue', name, tier: 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
+        }, 3000);
+      }
+    };
+
+    ws.onclose = () => {
+      if (!stopped) setTimeout(connect, 2000);
+    };
+    ws.onerror = () => {};
+  }
+
+  function stop() {
+    stopped = true;
+    if (timerInterval) clearInterval(timerInterval);
+    if (answerTimeout) clearTimeout(answerTimeout);
+    if (replayTimeout) clearTimeout(replayTimeout);
+    if (ws) { ws.close(); ws = null; }
+  }
+
+  connect();
+  return { state, stop };
+}
+
+document.getElementById('start-btn').onclick = () => {
+  if (bots.length > 0) return;
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  totalGames = 0;
+  answerTimes = [];
+
+  for (let i = 0; i < 5; i++) {
+    grid.appendChild(createTile(i));
+    bots.push(createBot(i));
+  }
+
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display = '';
+  updateStats();
+};
+
+document.getElementById('stop-btn').onclick = () => {
+  bots.forEach(b => b.stop());
+  bots = [];
+  document.getElementById('start-btn').style.display = '';
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Stopped. Click Start to begin again.</div>';
+};
+
+// Init
+document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Click "Start 5 Bots" to begin spectating</div>';
+</script>
+</body></html>
