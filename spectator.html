@@ -70,7 +70,13 @@ body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-syste
       <option value="wss://web-production-c6ec6.up.railway.app">Preview</option>
       <option value="wss://web-production-8866e.up.railway.app">Devnet</option>
     </select>
-    <button id="start-btn">Start 5 Bots</button>
+    <select id="tier-select">
+      <option value="1">Tier 1 — $0.10</option>
+      <option value="2">Tier 2 — $0.25</option>
+      <option value="3">Tier 3 — $0.50</option>
+      <option value="4" selected>Tier 4 — $1.00</option>
+    </select>
+    <button id="add-btn">+ Add Bot</button>
     <button id="stop-btn" style="display:none">Stop All</button>
   </div>
 </div>
@@ -195,7 +201,7 @@ function updateStats() {
   }
 }
 
-function createBot(idx) {
+function createBot(idx, tier) {
   const serverUrl = document.getElementById('server-select').value;
   const name = genName();
   const state = { name, phase: 'idle', matchId: null, options: null, imageUrl: null, questionText: null,
@@ -215,7 +221,7 @@ function createBot(idx) {
     ws.onopen = () => {
       state.phase = 'queued';
       renderTile(idx, state);
-      ws.send(JSON.stringify({ type: 'queue', name, tier: 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
+      ws.send(JSON.stringify({ type: 'queue', name, tier: tier || 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
     };
 
     ws.onmessage = (e) => {
@@ -291,7 +297,7 @@ function createBot(idx) {
           state.phase = 'queued';
           state.matchId = null;
           renderTile(idx, state);
-          ws.send(JSON.stringify({ type: 'queue', name, tier: 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
+          ws.send(JSON.stringify({ type: 'queue', name, tier: tier || 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
         }, 3000);
       }
     };
@@ -314,32 +320,31 @@ function createBot(idx) {
   return { state, stop };
 }
 
-document.getElementById('start-btn').onclick = () => {
-  if (bots.length > 0) return;
+let botIdx = 0;
+document.getElementById('add-btn').onclick = () => {
+  if (bots.length >= 10) return; // max 10
   const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-  totalGames = 0;
-  answerTimes = [];
-
-  for (let i = 0; i < 5; i++) {
-    grid.appendChild(createTile(i));
-    bots.push(createBot(i));
-  }
-
-  document.getElementById('start-btn').style.display = 'none';
+  if (botIdx === 0) { grid.innerHTML = ''; totalGames = 0; answerTimes = []; }
+  const tier = parseInt(document.getElementById('tier-select').value);
+  grid.appendChild(createTile(botIdx));
+  bots.push(createBot(botIdx, tier));
+  botIdx++;
   document.getElementById('stop-btn').style.display = '';
   updateStats();
+  // Update grid columns based on bot count
+  const cols = bots.length <= 2 ? bots.length : bots.length <= 4 ? 2 : bots.length <= 6 ? 3 : bots.length <= 9 ? 3 : 4;
+  grid.style.gridTemplateColumns = 'repeat(' + Math.min(5, bots.length) + ', 1fr)';
 };
 
 document.getElementById('stop-btn').onclick = () => {
   bots.forEach(b => b.stop());
   bots = [];
-  document.getElementById('start-btn').style.display = '';
+  botIdx = 0;
   document.getElementById('stop-btn').style.display = 'none';
-  document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Stopped. Click Start to begin again.</div>';
+  document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Stopped. Click + Add Bot to begin again.</div>';
 };
 
 // Init
-document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Click "Start 5 Bots" to begin spectating</div>';
+document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Click "+ Add Bot" to start spectating</div>';
 </script>
 </body></html>
