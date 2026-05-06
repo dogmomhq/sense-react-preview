@@ -5,444 +5,138 @@
 <title>Sense — Live Spectator</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-system, sans-serif; }
+body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
 .header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #1a2a3a; flex-wrap: wrap; gap: 6px; }
 .header h1 { font-size: 15px; font-weight: 600; color: #44ccdd; }
 .controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .controls select, .controls button { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 .controls button:hover { border-color: #44ccdd; }
-.stats-bar { display: flex; gap: 16px; padding: 6px 16px; background: #111d2b; font-size: 10px; color: #667788; }
+.stats-bar { display: flex; gap: 16px; padding: 6px 16px; background: #111d2b; font-size: 10px; color: #667788; align-items: center; }
 .stats-bar span { color: #44ccdd; font-weight: 600; }
-.legend { display: flex; gap: 10px; padding: 4px 16px; font-size: 8px; color: #667788; }
-.ldot { width: 6px; height: 6px; border-radius: 2px; display: inline-block; margin-right: 2px; vertical-align: middle; }
+.hint { font-size: 8px; color: #445566; margin-left: auto; }
 
-.grid { display: grid; gap: 6px; padding: 8px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.grid { display: grid; gap: 6px; padding: 8px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 
-/* === TILE === */
-.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 8px; overflow: hidden; min-height: 280px; display: flex; flex-direction: column; transition: box-shadow 0.3s; cursor: pointer; user-select: none; }
-.tile.flash-win { box-shadow: 0 0 20px rgba(0,212,170,0.4); }
-.tile.flash-loss { box-shadow: 0 0 20px rgba(255,71,87,0.4); }
-.tile.paused { opacity: 0.4; border-color: #ff4757; }
-
-/* Tile nav bar */
-.tnav { display: flex; justify-content: space-around; padding: 3px 0; border-top: 1px solid #2a3a4a; font-size: 6px; color: #445566; margin-top: auto; }
-.tnav-item { text-align: center; padding: 2px 0; }
-.tnav-item.active { color: #44ccdd; }
-.tnav-icon { font-size: 9px; }
-
-/* Tile header */
-.thdr { padding: 4px 8px; border-bottom: 1px solid #2a3a4a; display: flex; justify-content: space-between; align-items: center; }
-.thdr-name { font-size: 9px; color: #8899aa; font-family: monospace; }
-.thdr-wager { font-size: 8px; color: #44ccdd; font-weight: 600; margin-left: 4px; }
-.thdr-badge { font-size: 7px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
-.thdr-badge.idle { background: #2a3a4a; color: #667788; }
-.thdr-badge.joining { background: rgba(255,165,0,0.2); color: #ffa502; }
-.thdr-badge.countdown { background: rgba(0,200,255,0.15); color: #44ccdd; }
-.thdr-badge.live { background: rgba(0,212,170,0.15); color: #00d4aa; }
-.thdr-badge.waiting { background: rgba(255,165,0,0.15); color: #ffa502; }
-.thdr-badge.result { background: rgba(0,212,170,0.2); color: #00d4aa; }
-.thdr-badge.result-loss { background: rgba(255,71,87,0.2); color: #ff4757; }
-.thdr-badge.paused-badge { background: rgba(255,71,87,0.2); color: #ff4757; }
-.thdr-badge.expired-badge { background: rgba(255,165,0,0.2); color: #ffa502; }
-
-/* Body area */
-.tbody { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; gap: 4px; }
-
-/* Landing screen */
-.tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; }
-.tier-btn { background: #16202e; border: 1px solid #2a3a4a; border-radius: 5px; padding: 6px 4px; text-align: center; font-size: 9px; color: #8899aa; transition: all 0.2s; }
-.tier-btn.picking { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 10px rgba(0,200,255,0.25); transform: scale(1.03); }
-.play-btn-mini { background: #44ccdd; color: #0d1520; border: none; border-radius: 6px; padding: 6px 0; width: 100%; font-size: 10px; font-weight: 700; margin-top: 4px; transition: all 0.2s; }
-.play-btn-mini.clicking { transform: scale(0.95); opacity: 0.8; }
-
-/* Joining */
-.spinner-mini { width: 24px; height: 24px; border: 2px solid rgba(0,200,255,0.2); border-top-color: #44ccdd; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.joining-text { font-size: 10px; color: #667788; margin-top: 6px; }
-
-/* Countdown */
-.cd-num { font-size: 36px; font-weight: 800; color: #44ccdd; text-shadow: 0 0 20px rgba(0,200,255,0.4); }
-
-/* Play screen */
-.q-img-mini { width: 70%; max-height: 70px; object-fit: contain; border-radius: 4px; border: 1px solid #2a3a4a; }
-.q-text-mini { font-size: 9px; color: #8899aa; }
-.score-mini { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 8px; color: #667788; font-family: monospace; width: 100%; }
-.score-mini b { color: #44ccdd; }
-.timer-mini { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #44ccdd; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #44ccdd; flex-shrink: 0; }
-.timer-mini.urgent { border-color: #ff4757; color: #ff4757; }
-.ans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 100%; margin-top: 2px; }
-.ans-btn { background: #16202e; border: 1px solid #2a3a4a; border-radius: 4px; padding: 5px 2px; text-align: center; font-size: 8px; color: #8899aa; transition: all 0.15s; }
-.ans-btn.p1 { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 10px rgba(0,200,255,0.3); transform: scale(1.04); }
-.ans-btn.p2 { border-color: #ff9f43; background: rgba(255,159,67,0.12); color: #ff9f43; box-shadow: 0 0 10px rgba(255,159,67,0.3); }
-.ans-btn.correct { border-color: #00d4aa; background: rgba(0,212,170,0.15); color: #00d4aa; }
-.ans-btn.wrong { border-color: #ff4757; background: rgba(255,71,87,0.12); color: #ff4757; }
-.wait-bar { background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.2); border-radius: 4px; padding: 4px; text-align: center; font-size: 8px; color: #44ccdd; width: 100%; margin-top: 3px; }
-
-/* Result screen */
-.res-banner { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-.res-banner.win { color: #00d4aa; }
-.res-banner.loss { color: #ff4757; }
-.res-banner.draw { color: #ffa502; }
-.res-amount { font-size: 18px; font-weight: 800; margin: 2px 0; }
-.res-details { width: 100%; font-size: 8px; }
-.res-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #1a2a3a; }
-.res-row .label { color: #667788; }
-.res-row .val { color: #ccdde8; font-family: monospace; }
-.res-stats { display: flex; gap: 12px; margin: 6px 0; font-size: 9px; text-align: center; }
-.res-stats .n { font-weight: 700; font-size: 12px; display: block; }
-.replay-btn { background: #44ccdd; color: #0d1520; border: none; border-radius: 6px; padding: 6px 0; width: 100%; font-size: 9px; font-weight: 700; margin-top: 4px; transition: all 0.2s; }
-.replay-btn.clicking { transform: scale(0.95); opacity: 0.8; }
-.home-btn-mini { background: #16202e; border: 1px solid #2a3a4a; border-radius: 6px; padding: 5px 0; width: 100%; font-size: 8px; color: #8899aa; margin-top: 3px; text-align: center; }
+/* Each bot tile wraps an iframe of the REAL game */
+.tile { position: relative; background: #1a2332; border: 1px solid #2a3a4a; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s; }
+.tile:hover { border-color: #44ccdd; }
+.tile.paused { opacity: 0.35; border-color: #ff4757; }
+.tile-label { position: absolute; top: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 3px 8px; background: rgba(13,21,32,0.85); border-bottom: 1px solid #2a3a4a; pointer-events: none; }
+.tile-name { font-size: 9px; color: #8899aa; font-family: monospace; }
+.tile-wager { font-size: 8px; color: #44ccdd; font-weight: 600; }
+.tile-badge { font-size: 7px; padding: 1px 5px; border-radius: 3px; font-weight: 600; background: rgba(0,212,170,0.15); color: #00d4aa; }
+.tile-badge.paused { background: rgba(255,71,87,0.2); color: #ff4757; }
+.tile iframe { width: 100%; height: 520px; border: none; pointer-events: none; /* bots auto-play, no manual clicks */ transform-origin: top left; }
+.pause-overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(13,21,32,0.6); }
+.pause-overlay span { font-size: 28px; }
 </style>
 </head><body>
 <div class="header">
   <h1>SENSE — Live Spectator</h1>
   <div class="controls">
-    <select id="srv"><option value="wss://web-production-c6ec6.up.railway.app">Preview</option><option value="wss://web-production-8866e.up.railway.app">Devnet</option></select>
     <select id="tier"><option value="1">$0.10</option><option value="2">$0.25</option><option value="3">$0.50</option><option value="4" selected>$1.00</option></select>
     <button id="add-btn">+ Add Bot</button>
     <button id="stop-btn" style="display:none">Stop All</button>
   </div>
 </div>
-<div class="legend">
-  <span><span class="ldot" style="background:#44ccdd"></span>P1 click</span>
-  <span><span class="ldot" style="background:#ff9f43"></span>P2 click</span>
-  <span><span class="ldot" style="background:#00d4aa"></span>Correct</span>
-  <span style="margin-left:8px;color:#556677">Click tile to pause/resume</span>
+<div class="stats-bar">
+  Bots: <span id="st-count">0</span>
+  <span class="hint">Click tile to pause/resume · Each bot is the REAL game UI</span>
 </div>
-<div class="stats-bar">Games: <span id="st-games">0</span> &nbsp;|&nbsp; Active: <span id="st-active">0</span> &nbsp;|&nbsp; Avg: <span id="st-avg">—</span></div>
-<div class="grid" id="grid"><div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px">Click "+ Add Bot" to start</div></div>
+<div class="grid" id="grid">
+  <div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;font-size:12px">
+    Click "+ Add Bot" to launch a real game instance
+  </div>
+</div>
 
 <script>
-const NAMES=['SwiftFox','BraveLion','QuickOwl','SlyWolf','CalmBear','BoldHawk','FastDeer','KeenEagle','WiseRaven','SharpTiger'];
-const TIERS={1:'$0.10',2:'$0.25',3:'$0.50',4:'$1.00'};
-let bots=[], bidx=0, tGames=0, aTimes=[];
+const NAMES = ['SwiftFox','BraveLion','QuickOwl','SlyWolf','CalmBear','BoldHawk','FastDeer','KeenEagle','WiseRaven','SharpTiger'];
+const TIERS = {1:'$0.10', 2:'$0.25', 3:'$0.50', 4:'$1.00'};
+const BASE_URL = window.location.origin + window.location.pathname.replace('spectator.html', '');
+let bots = [], bidx = 0;
 
-function gn(){return NAMES[Math.random()*NAMES.length|0]+(Math.random()*90+10|0)}
-
-function nav(active){
-  return `<div class="tnav">
-    <div class="tnav-item ${active==='play'?'active':''}"><div class="tnav-icon">▶</div>Play</div>
-    <div class="tnav-item"><div class="tnav-icon">⊞</div>Chal.</div>
-    <div class="tnav-item"><div class="tnav-icon">●</div>Profile</div>
-    <div class="tnav-item"><div class="tnav-icon">●●</div>Hosts</div>
-    <div class="tnav-item ${active==='history'?'active':''}"><div class="tnav-icon">◷</div>History</div>
-  </div>`;
+function genName() {
+  return NAMES[Math.random() * NAMES.length | 0] + (Math.random() * 90 + 10 | 0);
 }
 
-function render(i,s){
-  const t=document.getElementById('t-'+i);
-  if(!t)return;
+function addBot() {
+  if (bots.length >= 8) return; // 8 max — each is a full React app
+  const grid = document.getElementById('grid');
+  if (bidx === 0) grid.innerHTML = '';
 
-  // Remove flash classes after animation
-  t.classList.remove('flash-win','flash-loss');
+  const tier = parseInt(document.getElementById('tier').value);
+  const name = genName();
+  const idx = bidx++;
+  const paused = false;
 
-  // Paused overlay
-  if(s.paused){
-    t.classList.add('paused');
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge paused-badge">PAUSED</div></div>
-      <div class="tbody"><div style="font-size:20px;color:#ff4757;margin-bottom:6px">⏸</div><div style="font-size:10px;color:#667788">Click to resume</div></div>${nav('play')}`;
-    return;
-  }
-  t.classList.remove('paused');
+  // Create tile
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  tile.id = 'tile-' + idx;
 
-  // Expired state
-  if(s.phase==='expired'){
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge expired-badge">EXPIRED</div></div>
-      <div class="tbody"><div style="font-size:10px;color:#ffa502">Game expired — requeuing...</div></div>${nav('play')}`;
-    return;
-  }
+  // Label overlay
+  const label = document.createElement('div');
+  label.className = 'tile-label';
+  label.innerHTML = `<span class="tile-name">${name} <span class="tile-wager">${TIERS[tier]}</span></span><span class="tile-badge" id="badge-${idx}">LIVE</span>`;
 
-  if(s.phase==='landing'){
-    const pick=s.pickingTier;
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge idle">HOME</div></div>
-      <div class="tbody">
-        <div style="font-size:10px;color:#667788;margin-bottom:4px">Select Wager</div>
-        <div class="tier-grid">
-          <div class="tier-btn ${pick===1?'picking':''}">$0.10</div>
-          <div class="tier-btn ${pick===2?'picking':''}">$0.25</div>
-          <div class="tier-btn ${pick===3?'picking':''}">$0.50</div>
-          <div class="tier-btn ${pick===4?'picking':''}">$1.00</div>
-        </div>
-        <div class="play-btn-mini ${s.clickingPlay?'clicking':''}">Play Now</div>
-      </div>${nav('play')}`;
-    return;
-  }
+  // Pause overlay (hidden initially)
+  const pauseOv = document.createElement('div');
+  pauseOv.className = 'pause-overlay';
+  pauseOv.style.display = 'none';
+  pauseOv.id = 'pause-' + idx;
+  pauseOv.innerHTML = '<span>⏸</span>';
 
-  if(s.phase==='joining'){
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge joining">JOINING</div></div>
-      <div class="tbody"><div class="spinner-mini"></div><div class="joining-text">Finding opponent...</div></div>${nav('play')}`;
-    return;
-  }
+  // iframe with real game + bot params
+  const iframe = document.createElement('iframe');
+  iframe.src = `${BASE_URL}index.html?bot=true&tier=${tier}&name=${encodeURIComponent(name)}`;
+  iframe.id = 'frame-' + idx;
 
-  if(s.phase==='countdown'){
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge countdown">READY</div></div>
-      <div class="tbody"><div class="cd-num">${s.cdNum}</div></div>${nav('play')}`;
-    return;
-  }
+  tile.appendChild(label);
+  tile.appendChild(pauseOv);
+  tile.appendChild(iframe);
+  grid.appendChild(tile);
 
-  if(s.phase==='playing'||s.phase==='answered'){
-    const sec=s.rem!=null?(s.rem/1000).toFixed(1):'—';
-    const urg=s.rem!=null&&s.rem<3000;
-    let ah='';
-    if(s.opts)ah=s.opts.map((o,j)=>{
-      let c='ans-btn';
-      if(s.p1a===j)c+=' p1';
-      if(s.p2a===j)c+=' p2';
-      return `<div class="${c}">${o}</div>`;
-    }).join('');
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge ${s.phase==='answered'?'waiting':'live'}">${s.phase==='answered'?'WAITING':'LIVE'}</div></div>
-      <div class="tbody">
-        ${s.img?`<img class="q-img-mini" src="${s.img}" onerror="this.style.display='none'">`:''}
-        <div class="q-text-mini">${s.qtxt||''}</div>
-        <div class="score-mini">
-          <span>You: <b>${s.myT!=null?(s.myT/1000).toFixed(2)+'s':'—'}</b></span>
-          <div class="timer-mini ${urg?'urgent':''}">${sec}</div>
-          <span>Them: <b>${s.opT!=null?(s.opT/1000).toFixed(2)+'s':'—'}</b></span>
-        </div>
-        <div class="ans-grid">${ah}</div>
-        ${s.phase==='answered'?'<div class="wait-bar">Waiting for opponent...</div>':''}
-      </div>${nav('play')}`;
-    return;
-  }
+  const bot = { idx, name, tier, paused: false, iframe, tile };
+  bots.push(bot);
 
-  if(s.phase==='result'){
-    const rc=s.res==='win'?'win':s.res==='loss'?'loss':'draw';
-    const rt=s.res==='win'?'YOU WIN':s.res==='loss'?'YOU LOSE':'DRAW';
-    const amt=s.res==='loss'?`-${TIERS[s.tier]}`:`+${TIERS[s.tier]}`;
-    const amtc=s.res==='win'?'#00d4aa':s.res==='loss'?'#ff4757':'#ffa502';
-    t.classList.add(s.res==='loss'?'flash-loss':'flash-win');
-    let ah='';
-    if(s.opts)ah=s.opts.map((o,j)=>{
-      let c='ans-btn';
-      if(s.p1a===j)c+=' p1';
-      if(s.p2a===j)c+=' p2';
-      if(s.cidx===j)c+=' correct';
-      if(s.p1a===j&&j!==s.cidx)c+=' wrong';
-      return `<div class="${c}">${o}</div>`;
-    }).join('');
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'?'}</div><div class="thdr-badge ${s.res==='loss'?'result-loss':'result'}">${s.reason||''}</div></div>
-      <div class="tbody">
-        <div class="res-banner ${rc}">${rt}</div>
-        <div class="res-details">
-          <div class="res-row"><span class="label">Your Time</span><span class="val">${s.myT!=null?(s.myT/1000).toFixed(2)+'s':'—'}</span></div>
-          <div class="res-row"><span class="label">Their Time</span><span class="val">${s.opT!=null?(s.opT/1000).toFixed(2)+'s':'—'}</span></div>
-        </div>
-        <div class="res-amount" style="color:${amtc}">${amt}</div>
-        <div class="res-stats">
-          <div><span class="n" style="color:#00d4aa">${s.wins}</span>Wins</div>
-          <div><span class="n" style="color:#ffa502">${s.draws}</span>Draws</div>
-          <div><span class="n" style="color:#ff4757">${s.losses}</span>Losses</div>
-        </div>
-        <div class="ans-grid">${ah}</div>
-        <div class="replay-btn ${s.clickingReplay?'clicking':''}">Play Again</div>
-        <div class="home-btn-mini">Home</div>
-      </div>${nav('play')}`;
-    return;
-  }
-}
-
-function upStats(){
-  document.getElementById('st-games').textContent=tGames;
-  document.getElementById('st-active').textContent=bots.filter(b=>b&&!b.s.paused&&['playing','answered','countdown'].includes(b.s.phase)).length;
-  if(aTimes.length){const a=aTimes.reduce((a,b)=>a+b,0)/aTimes.length;document.getElementById('st-avg').textContent=(a/1000).toFixed(2)+'s';}
-}
-
-function mkBot(idx,tier){
-  const name=gn();
-  const s={name,phase:'landing',tier,pickingTier:null,clickingPlay:false,paused:false,
-    mid:null,opts:null,img:null,qtxt:null,p1a:null,p2a:null,cidx:null,
-    rem:null,myT:null,opT:null,opp:null,res:null,reason:null,wager:null,payout:null,
-    qstart:null,cdNum:3,clickingReplay:false,wins:0,draws:0,losses:0};
-
-  let ws=null,tmr=null,stopped=false;
-  const timers=[];
-  function delay(fn,ms){const t=setTimeout(()=>{if(!stopped&&!s.paused)fn()},ms);timers.push(t);return t;}
-
-  // Pause/resume
-  function pause(){
-    s.paused=true;
-    render(idx,s);
-  }
-  function resume(){
-    s.paused=false;
-    render(idx,s);
-    // If stuck in a dead state, restart the flow
-    if(s.phase==='expired'||s.phase==='landing'){
-      startLandingFlow();
-    }
-  }
-
-  function startLandingFlow(){
-    s.phase='landing'; s.pickingTier=null; s.clickingPlay=false;
-    render(idx,s);
-    delay(()=>{
-      s.pickingTier=tier;
-      render(idx,s);
-      delay(()=>{
-        s.clickingPlay=true;
-        render(idx,s);
-        delay(()=>{
-          s.clickingPlay=false;
-          s.phase='joining';
-          render(idx,s);
-          if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
-        },300);
-      },800);
-    },1000);
-  }
-
-  function connect(){
-    if(stopped)return;
-    const url=document.getElementById('srv').value;
-    ws=new WebSocket(url);
-
-    ws.onopen=()=>{
-      startLandingFlow();
-    };
-
-    ws.onmessage=(e)=>{
-      if(stopped||s.paused)return;
-      const msg=JSON.parse(e.data);
-
-      if(msg.type==='ping'){ws.send(JSON.stringify({type:'pong',nonce:msg.nonce}));return;}
-
-      if(msg.type==='async-opponent-found'){
-        s.opp=msg.opponentName;
-        render(idx,s);
-      }
-
-      // Handle game-expired notification from server
-      if(msg.type==='game-expired'){
-        s.phase='expired';
-        render(idx,s);
-        // Auto-requeue after showing expired state briefly
-        delay(()=>{
-          startLandingFlow();
-        },1500);
-        return;
-      }
-
-      if(msg.type==='async-question'){
-        const url=document.getElementById('srv').value;
-        const httpBase=url.replace('wss://','https://').replace('ws://','http://');
-        s.mid=msg.matchId;
-        s.opts=msg.question.options;
-        s.qtxt=msg.question.text;
-        s.img=httpBase+'/img/'+msg.question.imageToken;
-        s.p1a=null;s.p2a=null;s.cidx=null;s.rem=10000;s.myT=null;s.opT=null;s.res=null;
-
-        // Countdown 3-2-1
-        s.phase='countdown'; s.cdNum=3;
-        render(idx,s);
-        delay(()=>{s.cdNum=2;render(idx,s);
-          delay(()=>{s.cdNum=1;render(idx,s);
-            delay(()=>{
-              // GO — start playing
-              s.phase='playing';
-              s.qstart=Date.now();
-              render(idx,s);
-              upStats();
-
-              // Timer tick
-              if(tmr)clearInterval(tmr);
-              tmr=setInterval(()=>{
-                if(stopped){clearInterval(tmr);return;}
-                if(s.paused)return; // Don't tick while paused
-                s.rem=Math.max(0,10000-(Date.now()-s.qstart));
-                if(s.phase==='playing')render(idx,s);
-                if(s.rem<=0)clearInterval(tmr);
-              },100);
-
-              // Bot answers after random delay
-              const ansDelay=800+Math.random()*3200;
-              delay(()=>{
-                if(s.phase!=='playing'||stopped)return;
-                const pick=Math.random()*s.opts.length|0;
-                s.p1a=pick;
-                s.myT=Date.now()-s.qstart;
-                s.phase='answered';
-                aTimes.push(s.myT);
-                render(idx,s);
-                ws.send(JSON.stringify({type:'async-answer',matchId:s.mid,answerIndex:pick,clientTime:s.myT}));
-              },ansDelay);
-            },700);
-          },700);
-        },700);
-      }
-
-      if(msg.type==='async-result'){
-        if(tmr){clearInterval(tmr);tmr=null;}
-        s.phase='result';
-        s.res=msg.result;
-        s.reason=msg.reason;
-        s.cidx=msg.correctIdx;
-        s.opT=msg.opponentTime;
-        s.wager=msg.wager;
-        s.payout=msg.payout;
-        if(msg.opponentAnswer!=null)s.p2a=msg.opponentAnswer;
-        if(s.res==='win')s.wins++;
-        else if(s.res==='loss')s.losses++;
-        else s.draws++;
-        tGames++;
-        render(idx,s);
-        upStats();
-
-        // Auto-replay: show result 3s, then click Play Again
-        delay(()=>{
-          s.clickingReplay=true;
-          render(idx,s);
-          delay(()=>{
-            s.clickingReplay=false;
-            startLandingFlow();
-          },300);
-        },3000);
-      }
-    };
-
-    ws.onclose=()=>{if(!stopped)delay(connect,2000);};
-    ws.onerror=()=>{};
-  }
-
-  function stop(){
-    stopped=true;
-    timers.forEach(t=>clearTimeout(t));
-    if(tmr)clearInterval(tmr);
-    if(ws){ws.close();ws=null;}
-  }
-
-  connect();
-  return {s,stop,pause,resume,idx};
-}
-
-document.getElementById('add-btn').onclick=()=>{
-  if(bots.length>=10)return;
-  const grid=document.getElementById('grid');
-  if(bidx===0){grid.innerHTML='';tGames=0;aTimes=[];}
-  const tier=parseInt(document.getElementById('tier').value);
-  const div=document.createElement('div');
-  div.className='tile';div.id='t-'+bidx;
-  div.innerHTML='<div class="tbody" style="color:#445566;font-size:10px">Starting...</div>';
   // Click to pause/resume
-  const botIdx=bidx;
-  div.addEventListener('click',()=>{
-    const bot=bots.find(b=>b&&b.idx===botIdx);
-    if(!bot)return;
-    if(bot.s.paused){bot.resume();}
-    else{bot.pause();}
+  tile.addEventListener('click', () => {
+    bot.paused = !bot.paused;
+    const badge = document.getElementById('badge-' + idx);
+    const pov = document.getElementById('pause-' + idx);
+    if (bot.paused) {
+      tile.classList.add('paused');
+      badge.textContent = 'PAUSED';
+      badge.className = 'tile-badge paused';
+      pov.style.display = 'flex';
+      // Tell the iframe's bot to pause
+      try { iframe.contentWindow._botPause(); } catch(e) {}
+    } else {
+      tile.classList.remove('paused');
+      badge.textContent = 'LIVE';
+      badge.className = 'tile-badge';
+      pov.style.display = 'none';
+      try { iframe.contentWindow._botResume(); } catch(e) {}
+    }
   });
-  grid.appendChild(div);
-  bots.push(mkBot(bidx,tier));
-  bidx++;
-  document.getElementById('stop-btn').style.display='';
-  upStats();
-};
 
-document.getElementById('stop-btn').onclick=()=>{
-  bots.forEach(b=>b.stop());
-  bots=[];bidx=0;
-  document.getElementById('stop-btn').style.display='none';
-  document.getElementById('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px">Stopped. Click + Add Bot to start again.</div>';
+  document.getElementById('stop-btn').style.display = '';
+  document.getElementById('st-count').textContent = bots.length;
+}
+
+document.getElementById('add-btn').onclick = addBot;
+
+document.getElementById('stop-btn').onclick = () => {
+  // Remove all iframes (kills WS connections)
+  bots.forEach(b => {
+    try { b.iframe.src = 'about:blank'; } catch(e) {}
+    b.tile.remove();
+  });
+  bots = [];
+  bidx = 0;
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('st-count').textContent = '0';
+  document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;font-size:12px">Stopped. Click + Add Bot to start again.</div>';
 };
 </script>
 </body></html>
