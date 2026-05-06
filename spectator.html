@@ -19,9 +19,10 @@ body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-syste
 .grid { display: grid; gap: 6px; padding: 8px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 
 /* === TILE === */
-.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 8px; overflow: hidden; min-height: 280px; display: flex; flex-direction: column; transition: box-shadow 0.3s; }
+.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 8px; overflow: hidden; min-height: 280px; display: flex; flex-direction: column; transition: box-shadow 0.3s; cursor: pointer; user-select: none; }
 .tile.flash-win { box-shadow: 0 0 20px rgba(0,212,170,0.4); }
 .tile.flash-loss { box-shadow: 0 0 20px rgba(255,71,87,0.4); }
+.tile.paused { opacity: 0.4; border-color: #ff4757; }
 
 /* Tile nav bar */
 .tnav { display: flex; justify-content: space-around; padding: 3px 0; border-top: 1px solid #2a3a4a; font-size: 6px; color: #445566; margin-top: auto; }
@@ -32,6 +33,7 @@ body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-syste
 /* Tile header */
 .thdr { padding: 4px 8px; border-bottom: 1px solid #2a3a4a; display: flex; justify-content: space-between; align-items: center; }
 .thdr-name { font-size: 9px; color: #8899aa; font-family: monospace; }
+.thdr-wager { font-size: 8px; color: #44ccdd; font-weight: 600; margin-left: 4px; }
 .thdr-badge { font-size: 7px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
 .thdr-badge.idle { background: #2a3a4a; color: #667788; }
 .thdr-badge.joining { background: rgba(255,165,0,0.2); color: #ffa502; }
@@ -40,6 +42,8 @@ body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-syste
 .thdr-badge.waiting { background: rgba(255,165,0,0.15); color: #ffa502; }
 .thdr-badge.result { background: rgba(0,212,170,0.2); color: #00d4aa; }
 .thdr-badge.result-loss { background: rgba(255,71,87,0.2); color: #ff4757; }
+.thdr-badge.paused-badge { background: rgba(255,71,87,0.2); color: #ff4757; }
+.thdr-badge.expired-badge { background: rgba(255,165,0,0.2); color: #ffa502; }
 
 /* Body area */
 .tbody { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; gap: 4px; }
@@ -104,6 +108,7 @@ body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-syste
   <span><span class="ldot" style="background:#44ccdd"></span>P1 click</span>
   <span><span class="ldot" style="background:#ff9f43"></span>P2 click</span>
   <span><span class="ldot" style="background:#00d4aa"></span>Correct</span>
+  <span style="margin-left:8px;color:#556677">Click tile to pause/resume</span>
 </div>
 <div class="stats-bar">Games: <span id="st-games">0</span> &nbsp;|&nbsp; Active: <span id="st-active">0</span> &nbsp;|&nbsp; Avg: <span id="st-avg">—</span></div>
 <div class="grid" id="grid"><div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px">Click "+ Add Bot" to start</div></div>
@@ -132,9 +137,25 @@ function render(i,s){
   // Remove flash classes after animation
   t.classList.remove('flash-win','flash-loss');
 
+  // Paused overlay
+  if(s.paused){
+    t.classList.add('paused');
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge paused-badge">PAUSED</div></div>
+      <div class="tbody"><div style="font-size:20px;color:#ff4757;margin-bottom:6px">⏸</div><div style="font-size:10px;color:#667788">Click to resume</div></div>${nav('play')}`;
+    return;
+  }
+  t.classList.remove('paused');
+
+  // Expired state
+  if(s.phase==='expired'){
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge expired-badge">EXPIRED</div></div>
+      <div class="tbody"><div style="font-size:10px;color:#ffa502">Game expired — requeuing...</div></div>${nav('play')}`;
+    return;
+  }
+
   if(s.phase==='landing'){
     const pick=s.pickingTier;
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}</div><div class="thdr-badge idle">HOME</div></div>
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge idle">HOME</div></div>
       <div class="tbody">
         <div style="font-size:10px;color:#667788;margin-bottom:4px">Select Wager</div>
         <div class="tier-grid">
@@ -149,13 +170,13 @@ function render(i,s){
   }
 
   if(s.phase==='joining'){
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}</div><div class="thdr-badge joining">JOINING</div></div>
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span></div><div class="thdr-badge joining">JOINING</div></div>
       <div class="tbody"><div class="spinner-mini"></div><div class="joining-text">Finding opponent...</div></div>${nav('play')}`;
     return;
   }
 
   if(s.phase==='countdown'){
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge countdown">READY</div></div>
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge countdown">READY</div></div>
       <div class="tbody"><div class="cd-num">${s.cdNum}</div></div>${nav('play')}`;
     return;
   }
@@ -170,7 +191,7 @@ function render(i,s){
       if(s.p2a===j)c+=' p2';
       return `<div class="${c}">${o}</div>`;
     }).join('');
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge ${s.phase==='answered'?'waiting':'live'}">${s.phase==='answered'?'WAITING':'LIVE'}</div></div>
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge ${s.phase==='answered'?'waiting':'live'}">${s.phase==='answered'?'WAITING':'LIVE'}</div></div>
       <div class="tbody">
         ${s.img?`<img class="q-img-mini" src="${s.img}" onerror="this.style.display='none'">`:''}
         <div class="q-text-mini">${s.qtxt||''}</div>
@@ -187,8 +208,8 @@ function render(i,s){
 
   if(s.phase==='result'){
     const rc=s.res==='win'?'win':s.res==='loss'?'loss':'draw';
-    const rt=s.res==='win'?'🎉 YOU WIN':s.res==='loss'?'😔 YOU LOSE':'🤝 DRAW';
-    const amt=s.res==='loss'?`-$${s.wager}`:`+$${s.payout}`;
+    const rt=s.res==='win'?'YOU WIN':s.res==='loss'?'YOU LOSE':'DRAW';
+    const amt=s.res==='loss'?`-${TIERS[s.tier]}`:`+${TIERS[s.tier]}`;
     const amtc=s.res==='win'?'#00d4aa':s.res==='loss'?'#ff4757':'#ffa502';
     t.classList.add(s.res==='loss'?'flash-loss':'flash-win');
     let ah='';
@@ -200,7 +221,7 @@ function render(i,s){
       if(s.p1a===j&&j!==s.cidx)c+=' wrong';
       return `<div class="${c}">${o}</div>`;
     }).join('');
-    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'?'}</div><div class="thdr-badge ${s.res==='loss'?'result-loss':'result'}">${s.reason||''}</div></div>
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span class="thdr-wager">${TIERS[s.tier]}</span><span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'?'}</div><div class="thdr-badge ${s.res==='loss'?'result-loss':'result'}">${s.reason||''}</div></div>
       <div class="tbody">
         <div class="res-banner ${rc}">${rt}</div>
         <div class="res-details">
@@ -223,20 +244,53 @@ function render(i,s){
 
 function upStats(){
   document.getElementById('st-games').textContent=tGames;
-  document.getElementById('st-active').textContent=bots.filter(b=>b&&['playing','answered','countdown'].includes(b.s.phase)).length;
+  document.getElementById('st-active').textContent=bots.filter(b=>b&&!b.s.paused&&['playing','answered','countdown'].includes(b.s.phase)).length;
   if(aTimes.length){const a=aTimes.reduce((a,b)=>a+b,0)/aTimes.length;document.getElementById('st-avg').textContent=(a/1000).toFixed(2)+'s';}
 }
 
 function mkBot(idx,tier){
   const name=gn();
-  const s={name,phase:'landing',tier,pickingTier:null,clickingPlay:false,
+  const s={name,phase:'landing',tier,pickingTier:null,clickingPlay:false,paused:false,
     mid:null,opts:null,img:null,qtxt:null,p1a:null,p2a:null,cidx:null,
     rem:null,myT:null,opT:null,opp:null,res:null,reason:null,wager:null,payout:null,
     qstart:null,cdNum:3,clickingReplay:false,wins:0,draws:0,losses:0};
 
   let ws=null,tmr=null,stopped=false;
   const timers=[];
-  function delay(fn,ms){const t=setTimeout(()=>{if(!stopped)fn()},ms);timers.push(t);return t;}
+  function delay(fn,ms){const t=setTimeout(()=>{if(!stopped&&!s.paused)fn()},ms);timers.push(t);return t;}
+
+  // Pause/resume
+  function pause(){
+    s.paused=true;
+    render(idx,s);
+  }
+  function resume(){
+    s.paused=false;
+    render(idx,s);
+    // If stuck in a dead state, restart the flow
+    if(s.phase==='expired'||s.phase==='landing'){
+      startLandingFlow();
+    }
+  }
+
+  function startLandingFlow(){
+    s.phase='landing'; s.pickingTier=null; s.clickingPlay=false;
+    render(idx,s);
+    delay(()=>{
+      s.pickingTier=tier;
+      render(idx,s);
+      delay(()=>{
+        s.clickingPlay=true;
+        render(idx,s);
+        delay(()=>{
+          s.clickingPlay=false;
+          s.phase='joining';
+          render(idx,s);
+          if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
+        },300);
+      },800);
+    },1000);
+  }
 
   function connect(){
     if(stopped)return;
@@ -244,31 +298,11 @@ function mkBot(idx,tier){
     ws=new WebSocket(url);
 
     ws.onopen=()=>{
-      // Start the landing flow
-      s.phase='landing'; s.pickingTier=null; s.clickingPlay=false;
-      render(idx,s);
-
-      // Simulate: pick tier after 1s
-      delay(()=>{
-        s.pickingTier=tier;
-        render(idx,s);
-        // Click play after 0.8s
-        delay(()=>{
-          s.clickingPlay=true;
-          render(idx,s);
-          delay(()=>{
-            s.clickingPlay=false;
-            s.phase='joining';
-            render(idx,s);
-            // Actually queue
-            ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
-          },300);
-        },800);
-      },1000);
+      startLandingFlow();
     };
 
     ws.onmessage=(e)=>{
-      if(stopped)return;
+      if(stopped||s.paused)return;
       const msg=JSON.parse(e.data);
 
       if(msg.type==='ping'){ws.send(JSON.stringify({type:'pong',nonce:msg.nonce}));return;}
@@ -276,6 +310,17 @@ function mkBot(idx,tier){
       if(msg.type==='async-opponent-found'){
         s.opp=msg.opponentName;
         render(idx,s);
+      }
+
+      // Handle game-expired notification from server
+      if(msg.type==='game-expired'){
+        s.phase='expired';
+        render(idx,s);
+        // Auto-requeue after showing expired state briefly
+        delay(()=>{
+          startLandingFlow();
+        },1500);
+        return;
       }
 
       if(msg.type==='async-question'){
@@ -303,6 +348,7 @@ function mkBot(idx,tier){
               if(tmr)clearInterval(tmr);
               tmr=setInterval(()=>{
                 if(stopped){clearInterval(tmr);return;}
+                if(s.paused)return; // Don't tick while paused
                 s.rem=Math.max(0,10000-(Date.now()-s.qstart));
                 if(s.phase==='playing')render(idx,s);
                 if(s.rem<=0)clearInterval(tmr);
@@ -348,24 +394,7 @@ function mkBot(idx,tier){
           render(idx,s);
           delay(()=>{
             s.clickingReplay=false;
-            s.phase='landing';
-            s.pickingTier=null;
-            render(idx,s);
-            // Re-run landing flow
-            delay(()=>{
-              s.pickingTier=tier;
-              render(idx,s);
-              delay(()=>{
-                s.clickingPlay=true;
-                render(idx,s);
-                delay(()=>{
-                  s.clickingPlay=false;
-                  s.phase='joining';
-                  render(idx,s);
-                  ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
-                },300);
-              },600);
-            },800);
+            startLandingFlow();
           },300);
         },3000);
       }
@@ -383,7 +412,7 @@ function mkBot(idx,tier){
   }
 
   connect();
-  return {s,stop};
+  return {s,stop,pause,resume,idx};
 }
 
 document.getElementById('add-btn').onclick=()=>{
@@ -394,6 +423,14 @@ document.getElementById('add-btn').onclick=()=>{
   const div=document.createElement('div');
   div.className='tile';div.id='t-'+bidx;
   div.innerHTML='<div class="tbody" style="color:#445566;font-size:10px">Starting...</div>';
+  // Click to pause/resume
+  const botIdx=bidx;
+  div.addEventListener('click',()=>{
+    const bot=bots.find(b=>b&&b.idx===botIdx);
+    if(!bot)return;
+    if(bot.s.paused){bot.resume();}
+    else{bot.pause();}
+  });
   grid.appendChild(div);
   bots.push(mkBot(bidx,tier));
   bidx++;
