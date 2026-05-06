@@ -6,345 +6,406 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #0d1520; color: #ccdde8; font-family: system-ui, -apple-system, sans-serif; }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #1a2a3a; }
-.header h1 { font-size: 16px; font-weight: 600; color: #44ccdd; }
-.controls { display: flex; gap: 8px; align-items: center; }
-.controls button { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #1a2a3a; flex-wrap: wrap; gap: 6px; }
+.header h1 { font-size: 15px; font-weight: 600; color: #44ccdd; }
+.controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.controls select, .controls button { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 5px 10px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 .controls button:hover { border-color: #44ccdd; }
-.controls button.active { background: #44ccdd; color: #0d1520; border-color: #44ccdd; }
-.controls select { background: #1a2a3a; border: 1px solid #2a3a4a; color: #ccdde8; padding: 6px 8px; border-radius: 6px; font-size: 12px; }
-.stats-bar { display: flex; gap: 20px; padding: 8px 20px; background: #111d2b; font-size: 11px; color: #667788; }
+.stats-bar { display: flex; gap: 16px; padding: 6px 16px; background: #111d2b; font-size: 10px; color: #667788; }
 .stats-bar span { color: #44ccdd; font-weight: 600; }
+.legend { display: flex; gap: 10px; padding: 4px 16px; font-size: 8px; color: #667788; }
+.ldot { width: 6px; height: 6px; border-radius: 2px; display: inline-block; margin-right: 2px; vertical-align: middle; }
 
-.grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; height: calc(100vh - 90px); }
-@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+.grid { display: grid; gap: 6px; padding: 8px; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 
-.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-.tile.win-flash { animation: winPulse 0.6s ease-out; }
-.tile.loss-flash { animation: lossPulse 0.6s ease-out; }
-@keyframes winPulse { 0% { box-shadow: 0 0 0 0 rgba(0,212,170,0.5); } 100% { box-shadow: 0 0 0 0 transparent; } }
-@keyframes lossPulse { 0% { box-shadow: 0 0 0 0 rgba(255,71,87,0.5); } 100% { box-shadow: 0 0 0 0 transparent; } }
+/* === TILE === */
+.tile { background: #1a2332; border: 1px solid #2a3a4a; border-radius: 8px; overflow: hidden; min-height: 280px; display: flex; flex-direction: column; transition: box-shadow 0.3s; }
+.tile.flash-win { box-shadow: 0 0 20px rgba(0,212,170,0.4); }
+.tile.flash-loss { box-shadow: 0 0 20px rgba(255,71,87,0.4); }
 
-.tile-header { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-bottom: 1px solid #2a3a4a; font-size: 9px; }
-.tile-names { color: #8899aa; font-family: monospace; }
-.tile-names .vs { color: #445566; font-size: 7px; margin: 0 3px; }
-.tile-status { padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: 600; }
-.tile-status.waiting { background: #2a3a4a; color: #667788; }
-.tile-status.playing { background: rgba(0,200,255,0.15); color: #44ccdd; }
-.tile-status.result { background: rgba(0,212,170,0.15); color: #00d4aa; }
+/* Tile nav bar */
+.tnav { display: flex; justify-content: space-around; padding: 3px 0; border-top: 1px solid #2a3a4a; font-size: 6px; color: #445566; margin-top: auto; }
+.tnav-item { text-align: center; padding: 2px 0; }
+.tnav-item.active { color: #44ccdd; }
+.tnav-icon { font-size: 9px; }
 
-.tile-body { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; gap: 4px; }
-.tile-img { width: 60%; max-height: 80px; object-fit: contain; border-radius: 4px; border: 1px solid #2a3a4a; }
-.tile-question { font-size: 10px; color: #8899aa; }
-.tile-timer { font-size: 14px; font-weight: 700; color: #44ccdd; font-variant-numeric: tabular-nums; }
-.tile-timer.urgent { color: #ff4757; }
+/* Tile header */
+.thdr { padding: 4px 8px; border-bottom: 1px solid #2a3a4a; display: flex; justify-content: space-between; align-items: center; }
+.thdr-name { font-size: 9px; color: #8899aa; font-family: monospace; }
+.thdr-badge { font-size: 7px; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+.thdr-badge.idle { background: #2a3a4a; color: #667788; }
+.thdr-badge.joining { background: rgba(255,165,0,0.2); color: #ffa502; }
+.thdr-badge.countdown { background: rgba(0,200,255,0.15); color: #44ccdd; }
+.thdr-badge.live { background: rgba(0,212,170,0.15); color: #00d4aa; }
+.thdr-badge.waiting { background: rgba(255,165,0,0.15); color: #ffa502; }
+.thdr-badge.result { background: rgba(0,212,170,0.2); color: #00d4aa; }
+.thdr-badge.result-loss { background: rgba(255,71,87,0.2); color: #ff4757; }
 
-.tile-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 0 6px 6px; }
-.tile-ans { background: #16202e; border: 1px solid #2a3a4a; border-radius: 4px; padding: 4px 2px; text-align: center; font-size: 8px; color: #8899aa; transition: all 0.2s; }
-.tile-ans.p1-pick { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 8px rgba(0,200,255,0.3); }
-.tile-ans.p2-pick { border-color: #ff9f43; background: rgba(255,159,67,0.12); color: #ff9f43; box-shadow: 0 0 8px rgba(255,159,67,0.3); }
-.tile-ans.correct { border-color: #00d4aa; background: rgba(0,212,170,0.15); color: #00d4aa; }
-.tile-ans.wrong { border-color: #ff4757; background: rgba(255,71,87,0.15); color: #ff4757; }
+/* Body area */
+.tbody { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 8px; gap: 4px; }
 
-.tile-result { text-align: center; padding: 4px; font-size: 11px; font-weight: 700; }
-.tile-result.win { color: #00d4aa; }
-.tile-result.loss { color: #ff4757; }
-.tile-result.draw { color: #ffa502; }
+/* Landing screen */
+.tier-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; width: 100%; }
+.tier-btn { background: #16202e; border: 1px solid #2a3a4a; border-radius: 5px; padding: 6px 4px; text-align: center; font-size: 9px; color: #8899aa; transition: all 0.2s; }
+.tier-btn.picking { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 10px rgba(0,200,255,0.25); transform: scale(1.03); }
+.play-btn-mini { background: #44ccdd; color: #0d1520; border: none; border-radius: 6px; padding: 6px 0; width: 100%; font-size: 10px; font-weight: 700; margin-top: 4px; transition: all 0.2s; }
+.play-btn-mini.clicking { transform: scale(0.95); opacity: 0.8; }
 
-.tile-scores { display: flex; justify-content: space-around; padding: 3px 8px; font-size: 8px; font-family: monospace; color: #667788; border-top: 1px solid #2a3a4a; }
-.tile-scores .time { color: #44ccdd; }
+/* Joining */
+.spinner-mini { width: 24px; height: 24px; border: 2px solid rgba(0,200,255,0.2); border-top-color: #44ccdd; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.joining-text { font-size: 10px; color: #667788; margin-top: 6px; }
 
-.tile-idle { display: flex; align-items: center; justify-content: center; height: 100%; color: #445566; font-size: 11px; }
+/* Countdown */
+.cd-num { font-size: 36px; font-weight: 800; color: #44ccdd; text-shadow: 0 0 20px rgba(0,200,255,0.4); }
 
-.legend { display: flex; gap: 12px; align-items: center; padding: 4px 20px; font-size: 9px; color: #667788; }
-.legend-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 3px; }
-.legend-dot.p1 { background: #44ccdd; }
-.legend-dot.p2 { background: #ff9f43; }
-.legend-dot.correct { background: #00d4aa; }
+/* Play screen */
+.q-img-mini { width: 70%; max-height: 70px; object-fit: contain; border-radius: 4px; border: 1px solid #2a3a4a; }
+.q-text-mini { font-size: 9px; color: #8899aa; }
+.score-mini { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 8px; color: #667788; font-family: monospace; width: 100%; }
+.score-mini b { color: #44ccdd; }
+.timer-mini { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #44ccdd; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #44ccdd; flex-shrink: 0; }
+.timer-mini.urgent { border-color: #ff4757; color: #ff4757; }
+.ans-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 100%; margin-top: 2px; }
+.ans-btn { background: #16202e; border: 1px solid #2a3a4a; border-radius: 4px; padding: 5px 2px; text-align: center; font-size: 8px; color: #8899aa; transition: all 0.15s; }
+.ans-btn.p1 { border-color: #44ccdd; background: rgba(0,200,255,0.12); color: #44ccdd; box-shadow: 0 0 10px rgba(0,200,255,0.3); transform: scale(1.04); }
+.ans-btn.p2 { border-color: #ff9f43; background: rgba(255,159,67,0.12); color: #ff9f43; box-shadow: 0 0 10px rgba(255,159,67,0.3); }
+.ans-btn.correct { border-color: #00d4aa; background: rgba(0,212,170,0.15); color: #00d4aa; }
+.ans-btn.wrong { border-color: #ff4757; background: rgba(255,71,87,0.12); color: #ff4757; }
+.wait-bar { background: rgba(0,200,255,0.08); border: 1px solid rgba(0,200,255,0.2); border-radius: 4px; padding: 4px; text-align: center; font-size: 8px; color: #44ccdd; width: 100%; margin-top: 3px; }
+
+/* Result screen */
+.res-banner { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.res-banner.win { color: #00d4aa; }
+.res-banner.loss { color: #ff4757; }
+.res-banner.draw { color: #ffa502; }
+.res-amount { font-size: 18px; font-weight: 800; margin: 2px 0; }
+.res-details { width: 100%; font-size: 8px; }
+.res-row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #1a2a3a; }
+.res-row .label { color: #667788; }
+.res-row .val { color: #ccdde8; font-family: monospace; }
+.res-stats { display: flex; gap: 12px; margin: 6px 0; font-size: 9px; text-align: center; }
+.res-stats .n { font-weight: 700; font-size: 12px; display: block; }
+.replay-btn { background: #44ccdd; color: #0d1520; border: none; border-radius: 6px; padding: 6px 0; width: 100%; font-size: 9px; font-weight: 700; margin-top: 4px; transition: all 0.2s; }
+.replay-btn.clicking { transform: scale(0.95); opacity: 0.8; }
+.home-btn-mini { background: #16202e; border: 1px solid #2a3a4a; border-radius: 6px; padding: 5px 0; width: 100%; font-size: 8px; color: #8899aa; margin-top: 3px; text-align: center; }
 </style>
 </head><body>
 <div class="header">
   <h1>SENSE — Live Spectator</h1>
   <div class="controls">
-    <select id="server-select">
-      <option value="wss://web-production-c6ec6.up.railway.app">Preview</option>
-      <option value="wss://web-production-8866e.up.railway.app">Devnet</option>
-    </select>
-    <select id="tier-select">
-      <option value="1">Tier 1 — $0.10</option>
-      <option value="2">Tier 2 — $0.25</option>
-      <option value="3">Tier 3 — $0.50</option>
-      <option value="4" selected>Tier 4 — $1.00</option>
-    </select>
+    <select id="srv"><option value="wss://web-production-c6ec6.up.railway.app">Preview</option><option value="wss://web-production-8866e.up.railway.app">Devnet</option></select>
+    <select id="tier"><option value="1">$0.10</option><option value="2">$0.25</option><option value="3">$0.50</option><option value="4" selected>$1.00</option></select>
     <button id="add-btn">+ Add Bot</button>
     <button id="stop-btn" style="display:none">Stop All</button>
   </div>
 </div>
 <div class="legend">
-  <span><span class="legend-dot p1"></span> Player 1 answer</span>
-  <span><span class="legend-dot p2"></span> Player 2 answer</span>
-  <span><span class="legend-dot correct"></span> Correct answer</span>
+  <span><span class="ldot" style="background:#44ccdd"></span>P1 click</span>
+  <span><span class="ldot" style="background:#ff9f43"></span>P2 click</span>
+  <span><span class="ldot" style="background:#00d4aa"></span>Correct</span>
 </div>
-<div class="stats-bar">
-  Games played: <span id="total-games">0</span> &nbsp;|&nbsp;
-  Active: <span id="active-count">0</span> &nbsp;|&nbsp;
-  Avg answer time: <span id="avg-time">—</span>
-</div>
-<div class="grid" id="grid"></div>
+<div class="stats-bar">Games: <span id="st-games">0</span> &nbsp;|&nbsp; Active: <span id="st-active">0</span> &nbsp;|&nbsp; Avg: <span id="st-avg">—</span></div>
+<div class="grid" id="grid"><div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px">Click "+ Add Bot" to start</div></div>
 
 <script>
-const NAMES = ['SwiftFox','BraveLion','QuickOwl','SlyWolf','CalmBear','BoldHawk','FastDeer','KeenEagle','WiseRaven','SharpTiger'];
-let bots = [];
-let totalGames = 0;
-let answerTimes = [];
+const NAMES=['SwiftFox','BraveLion','QuickOwl','SlyWolf','CalmBear','BoldHawk','FastDeer','KeenEagle','WiseRaven','SharpTiger'];
+const TIERS={1:'$0.10',2:'$0.25',3:'$0.50',4:'$1.00'};
+let bots=[], bidx=0, tGames=0, aTimes=[];
 
-function genName() {
-  return NAMES[Math.floor(Math.random()*NAMES.length)] + Math.floor(Math.random()*90+10);
+function gn(){return NAMES[Math.random()*NAMES.length|0]+(Math.random()*90+10|0)}
+
+function nav(active){
+  return `<div class="tnav">
+    <div class="tnav-item ${active==='play'?'active':''}"><div class="tnav-icon">▶</div>Play</div>
+    <div class="tnav-item"><div class="tnav-icon">⊞</div>Chal.</div>
+    <div class="tnav-item"><div class="tnav-icon">●</div>Profile</div>
+    <div class="tnav-item"><div class="tnav-icon">●●</div>Hosts</div>
+    <div class="tnav-item ${active==='history'?'active':''}"><div class="tnav-icon">◷</div>History</div>
+  </div>`;
 }
 
-function createTile(idx) {
-  const div = document.createElement('div');
-  div.className = 'tile';
-  div.id = 'tile-' + idx;
-  div.innerHTML = '<div class="tile-idle">Ready</div>';
-  return div;
-}
+function render(i,s){
+  const t=document.getElementById('t-'+i);
+  if(!t)return;
 
-function renderTile(idx, state) {
-  const tile = document.getElementById('tile-' + idx);
-  if (!tile) return;
+  // Remove flash classes after animation
+  t.classList.remove('flash-win','flash-loss');
 
-  if (state.phase === 'idle' || state.phase === 'queued') {
-    tile.innerHTML = `
-      <div class="tile-header">
-        <div class="tile-names">${state.name}</div>
-        <div class="tile-status waiting">${state.phase === 'queued' ? 'MATCHING...' : 'IDLE'}</div>
-      </div>
-      <div class="tile-body"><div class="tile-idle">${state.phase === 'queued' ? 'Finding opponent...' : 'Waiting to start'}</div></div>`;
+  if(s.phase==='landing'){
+    const pick=s.pickingTier;
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}</div><div class="thdr-badge idle">HOME</div></div>
+      <div class="tbody">
+        <div style="font-size:10px;color:#667788;margin-bottom:4px">Select Wager</div>
+        <div class="tier-grid">
+          <div class="tier-btn ${pick===1?'picking':''}">$0.10</div>
+          <div class="tier-btn ${pick===2?'picking':''}">$0.25</div>
+          <div class="tier-btn ${pick===3?'picking':''}">$0.50</div>
+          <div class="tier-btn ${pick===4?'picking':''}">$1.00</div>
+        </div>
+        <div class="play-btn-mini ${s.clickingPlay?'clicking':''}">Play Now</div>
+      </div>${nav('play')}`;
     return;
   }
 
-  if (state.phase === 'playing' || state.phase === 'answered') {
-    const secs = state.remaining != null ? (state.remaining / 1000).toFixed(1) : '—';
-    const urgent = state.remaining != null && state.remaining < 3000;
-    
-    let ansHtml = '';
-    if (state.options) {
-      ansHtml = state.options.map((opt, i) => {
-        let cls = 'tile-ans';
-        if (state.p1Answer === i) cls += ' p1-pick';
-        if (state.p2Answer === i) cls += ' p2-pick';
-        if (state.phase === 'result' && state.correctIdx === i) cls += ' correct';
-        return `<div class="${cls}">${opt}</div>`;
-      }).join('');
-    }
-
-    tile.innerHTML = `
-      <div class="tile-header">
-        <div class="tile-names">${state.name}<span class="vs">vs</span>${state.opponent || '...'}</div>
-        <div class="tile-status playing">${state.phase === 'answered' ? 'WAITING' : 'LIVE'}</div>
-      </div>
-      <div class="tile-body">
-        ${state.imageUrl ? `<img class="tile-img" src="${state.imageUrl}" onerror="this.style.display='none'">` : ''}
-        <div class="tile-question">${state.questionText || ''}</div>
-        <div class="tile-timer ${urgent ? 'urgent' : ''}">${secs}s</div>
-      </div>
-      <div class="tile-answers">${ansHtml}</div>
-      <div class="tile-scores">
-        <span>${state.name}: <span class="time">${state.myTime != null ? (state.myTime/1000).toFixed(2)+'s' : '—'}</span></span>
-        <span>${state.opponent || '?'}: <span class="time">${state.oppTime != null ? (state.oppTime/1000).toFixed(2)+'s' : '—'}</span></span>
-      </div>`;
+  if(s.phase==='joining'){
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}</div><div class="thdr-badge joining">JOINING</div></div>
+      <div class="tbody"><div class="spinner-mini"></div><div class="joining-text">Finding opponent...</div></div>${nav('play')}`;
     return;
   }
 
-  if (state.phase === 'result') {
-    let ansHtml = '';
-    if (state.options) {
-      ansHtml = state.options.map((opt, i) => {
-        let cls = 'tile-ans';
-        if (state.p1Answer === i) cls += ' p1-pick';
-        if (state.p2Answer === i) cls += ' p2-pick';
-        if (state.correctIdx === i) cls += ' correct';
-        if (state.p1Answer === i && i !== state.correctIdx) cls += ' wrong';
-        return `<div class="${cls}">${opt}</div>`;
-      }).join('');
-    }
+  if(s.phase==='countdown'){
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge countdown">READY</div></div>
+      <div class="tbody"><div class="cd-num">${s.cdNum}</div></div>${nav('play')}`;
+    return;
+  }
 
-    const rc = state.result === 'win' ? 'win' : state.result === 'loss' ? 'loss' : 'draw';
-    const rt = state.result === 'win' ? 'WON' : state.result === 'loss' ? 'LOST' : 'DRAW';
-    tile.className = 'tile ' + rc + '-flash';
+  if(s.phase==='playing'||s.phase==='answered'){
+    const sec=s.rem!=null?(s.rem/1000).toFixed(1):'—';
+    const urg=s.rem!=null&&s.rem<3000;
+    let ah='';
+    if(s.opts)ah=s.opts.map((o,j)=>{
+      let c='ans-btn';
+      if(s.p1a===j)c+=' p1';
+      if(s.p2a===j)c+=' p2';
+      return `<div class="${c}">${o}</div>`;
+    }).join('');
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'...'}</div><div class="thdr-badge ${s.phase==='answered'?'waiting':'live'}">${s.phase==='answered'?'WAITING':'LIVE'}</div></div>
+      <div class="tbody">
+        ${s.img?`<img class="q-img-mini" src="${s.img}" onerror="this.style.display='none'">`:''}
+        <div class="q-text-mini">${s.qtxt||''}</div>
+        <div class="score-mini">
+          <span>You: <b>${s.myT!=null?(s.myT/1000).toFixed(2)+'s':'—'}</b></span>
+          <div class="timer-mini ${urg?'urgent':''}">${sec}</div>
+          <span>Them: <b>${s.opT!=null?(s.opT/1000).toFixed(2)+'s':'—'}</b></span>
+        </div>
+        <div class="ans-grid">${ah}</div>
+        ${s.phase==='answered'?'<div class="wait-bar">Waiting for opponent...</div>':''}
+      </div>${nav('play')}`;
+    return;
+  }
 
-    tile.innerHTML = `
-      <div class="tile-header">
-        <div class="tile-names">${state.name}<span class="vs">vs</span>${state.opponent || '?'}</div>
-        <div class="tile-status result">${state.reason || ''}</div>
-      </div>
-      <div class="tile-body">
-        ${state.imageUrl ? `<img class="tile-img" src="${state.imageUrl}" onerror="this.style.display='none'">` : ''}
-        <div class="tile-result ${rc}">${rt} ${state.payout ? (state.result==='loss' ? '-$'+state.wager : '+$'+state.payout) : ''}</div>
-      </div>
-      <div class="tile-answers">${ansHtml}</div>
-      <div class="tile-scores">
-        <span>${state.name}: <span class="time">${state.myTime != null ? (state.myTime/1000).toFixed(2)+'s' : '—'}</span></span>
-        <span>${state.opponent || '?'}: <span class="time">${state.oppTime != null ? (state.oppTime/1000).toFixed(2)+'s' : '—'}</span></span>
-      </div>`;
+  if(s.phase==='result'){
+    const rc=s.res==='win'?'win':s.res==='loss'?'loss':'draw';
+    const rt=s.res==='win'?'🎉 YOU WIN':s.res==='loss'?'😔 YOU LOSE':'🤝 DRAW';
+    const amt=s.res==='loss'?`-$${s.wager}`:`+$${s.payout}`;
+    const amtc=s.res==='win'?'#00d4aa':s.res==='loss'?'#ff4757':'#ffa502';
+    t.classList.add(s.res==='loss'?'flash-loss':'flash-win');
+    let ah='';
+    if(s.opts)ah=s.opts.map((o,j)=>{
+      let c='ans-btn';
+      if(s.p1a===j)c+=' p1';
+      if(s.p2a===j)c+=' p2';
+      if(s.cidx===j)c+=' correct';
+      if(s.p1a===j&&j!==s.cidx)c+=' wrong';
+      return `<div class="${c}">${o}</div>`;
+    }).join('');
+    t.innerHTML=`<div class="thdr"><div class="thdr-name">${s.name}<span style="color:#445566;font-size:7px;margin:0 3px">vs</span>${s.opp||'?'}</div><div class="thdr-badge ${s.res==='loss'?'result-loss':'result'}">${s.reason||''}</div></div>
+      <div class="tbody">
+        <div class="res-banner ${rc}">${rt}</div>
+        <div class="res-details">
+          <div class="res-row"><span class="label">Your Time</span><span class="val">${s.myT!=null?(s.myT/1000).toFixed(2)+'s':'—'}</span></div>
+          <div class="res-row"><span class="label">Their Time</span><span class="val">${s.opT!=null?(s.opT/1000).toFixed(2)+'s':'—'}</span></div>
+        </div>
+        <div class="res-amount" style="color:${amtc}">${amt}</div>
+        <div class="res-stats">
+          <div><span class="n" style="color:#00d4aa">${s.wins}</span>Wins</div>
+          <div><span class="n" style="color:#ffa502">${s.draws}</span>Draws</div>
+          <div><span class="n" style="color:#ff4757">${s.losses}</span>Losses</div>
+        </div>
+        <div class="ans-grid">${ah}</div>
+        <div class="replay-btn ${s.clickingReplay?'clicking':''}">Play Again</div>
+        <div class="home-btn-mini">Home</div>
+      </div>${nav('play')}`;
     return;
   }
 }
 
-function updateStats() {
-  document.getElementById('total-games').textContent = totalGames;
-  document.getElementById('active-count').textContent = bots.filter(b => b && b.state.phase === 'playing').length;
-  if (answerTimes.length > 0) {
-    const avg = answerTimes.reduce((a,b) => a+b, 0) / answerTimes.length;
-    document.getElementById('avg-time').textContent = (avg/1000).toFixed(2) + 's';
-  }
+function upStats(){
+  document.getElementById('st-games').textContent=tGames;
+  document.getElementById('st-active').textContent=bots.filter(b=>b&&['playing','answered','countdown'].includes(b.s.phase)).length;
+  if(aTimes.length){const a=aTimes.reduce((a,b)=>a+b,0)/aTimes.length;document.getElementById('st-avg').textContent=(a/1000).toFixed(2)+'s';}
 }
 
-function createBot(idx, tier) {
-  const serverUrl = document.getElementById('server-select').value;
-  const name = genName();
-  const state = { name, phase: 'idle', matchId: null, options: null, imageUrl: null, questionText: null,
-    p1Answer: null, p2Answer: null, correctIdx: null, remaining: null, myTime: null, oppTime: null,
-    opponent: null, result: null, reason: null, wager: null, payout: null, questionStart: null };
+function mkBot(idx,tier){
+  const name=gn();
+  const s={name,phase:'landing',tier,pickingTier:null,clickingPlay:false,
+    mid:null,opts:null,img:null,qtxt:null,p1a:null,p2a:null,cidx:null,
+    rem:null,myT:null,opT:null,opp:null,res:null,reason:null,wager:null,payout:null,
+    qstart:null,cdNum:3,clickingReplay:false,wins:0,draws:0,losses:0};
 
-  let ws = null;
-  let timerInterval = null;
-  let answerTimeout = null;
-  let replayTimeout = null;
-  let stopped = false;
+  let ws=null,tmr=null,stopped=false;
+  const timers=[];
+  function delay(fn,ms){const t=setTimeout(()=>{if(!stopped)fn()},ms);timers.push(t);return t;}
 
-  function connect() {
-    if (stopped) return;
-    ws = new WebSocket(serverUrl);
-    
-    ws.onopen = () => {
-      state.phase = 'queued';
-      renderTile(idx, state);
-      ws.send(JSON.stringify({ type: 'queue', name, tier: tier || 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
+  function connect(){
+    if(stopped)return;
+    const url=document.getElementById('srv').value;
+    ws=new WebSocket(url);
+
+    ws.onopen=()=>{
+      // Start the landing flow
+      s.phase='landing'; s.pickingTier=null; s.clickingPlay=false;
+      render(idx,s);
+
+      // Simulate: pick tier after 1s
+      delay(()=>{
+        s.pickingTier=tier;
+        render(idx,s);
+        // Click play after 0.8s
+        delay(()=>{
+          s.clickingPlay=true;
+          render(idx,s);
+          delay(()=>{
+            s.clickingPlay=false;
+            s.phase='joining';
+            render(idx,s);
+            // Actually queue
+            ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
+          },300);
+        },800);
+      },1000);
     };
 
-    ws.onmessage = (e) => {
-      if (stopped) return;
-      const msg = JSON.parse(e.data);
+    ws.onmessage=(e)=>{
+      if(stopped)return;
+      const msg=JSON.parse(e.data);
 
-      if (msg.type === 'ping') {
-        ws.send(JSON.stringify({ type: 'pong', nonce: msg.nonce }));
-        return;
+      if(msg.type==='ping'){ws.send(JSON.stringify({type:'pong',nonce:msg.nonce}));return;}
+
+      if(msg.type==='async-opponent-found'){
+        s.opp=msg.opponentName;
+        render(idx,s);
       }
 
-      if (msg.type === 'async-question') {
-        state.phase = 'playing';
-        state.matchId = msg.matchId;
-        state.options = msg.question.options;
-        state.questionText = msg.question.text;
-        state.imageUrl = serverUrl.replace('wss://','https://').replace('ws://','http://') + '/img/' + msg.question.imageToken;
-        state.p1Answer = null;
-        state.p2Answer = null;
-        state.correctIdx = null;
-        state.remaining = 10000;
-        state.myTime = null;
-        state.oppTime = null;
-        state.result = null;
-        state.questionStart = Date.now();
-        renderTile(idx, state);
+      if(msg.type==='async-question'){
+        const url=document.getElementById('srv').value;
+        const httpBase=url.replace('wss://','https://').replace('ws://','http://');
+        s.mid=msg.matchId;
+        s.opts=msg.question.options;
+        s.qtxt=msg.question.text;
+        s.img=httpBase+'/img/'+msg.question.imageToken;
+        s.p1a=null;s.p2a=null;s.cidx=null;s.rem=10000;s.myT=null;s.opT=null;s.res=null;
 
-        // Countdown timer
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-          state.remaining = Math.max(0, 10000 - (Date.now() - state.questionStart));
-          renderTile(idx, state);
-          if (state.remaining <= 0) clearInterval(timerInterval);
-        }, 100);
+        // Countdown 3-2-1
+        s.phase='countdown'; s.cdNum=3;
+        render(idx,s);
+        delay(()=>{s.cdNum=2;render(idx,s);
+          delay(()=>{s.cdNum=1;render(idx,s);
+            delay(()=>{
+              // GO — start playing
+              s.phase='playing';
+              s.qstart=Date.now();
+              render(idx,s);
+              upStats();
 
-        // Bot answers after random delay (0.8 - 4s)
-        const delay = 800 + Math.random() * 3200;
-        answerTimeout = setTimeout(() => {
-          if (state.phase !== 'playing' || stopped) return;
-          // Pick random answer (sometimes correct-ish, sometimes not)
-          const pick = Math.floor(Math.random() * state.options.length);
-          state.p1Answer = pick;
-          state.myTime = Date.now() - state.questionStart;
-          state.phase = 'answered';
-          answerTimes.push(state.myTime);
-          renderTile(idx, state);
-          ws.send(JSON.stringify({ type: 'async-answer', matchId: state.matchId, answerIndex: pick, clientTime: state.myTime }));
-        }, delay);
+              // Timer tick
+              if(tmr)clearInterval(tmr);
+              tmr=setInterval(()=>{
+                if(stopped){clearInterval(tmr);return;}
+                s.rem=Math.max(0,10000-(Date.now()-s.qstart));
+                if(s.phase==='playing')render(idx,s);
+                if(s.rem<=0)clearInterval(tmr);
+              },100);
+
+              // Bot answers after random delay
+              const ansDelay=800+Math.random()*3200;
+              delay(()=>{
+                if(s.phase!=='playing'||stopped)return;
+                const pick=Math.random()*s.opts.length|0;
+                s.p1a=pick;
+                s.myT=Date.now()-s.qstart;
+                s.phase='answered';
+                aTimes.push(s.myT);
+                render(idx,s);
+                ws.send(JSON.stringify({type:'async-answer',matchId:s.mid,answerIndex:pick,clientTime:s.myT}));
+              },ansDelay);
+            },700);
+          },700);
+        },700);
       }
 
-      if (msg.type === 'async-opponent-found') {
-        state.opponent = msg.opponentName;
-        renderTile(idx, state);
-      }
+      if(msg.type==='async-result'){
+        if(tmr){clearInterval(tmr);tmr=null;}
+        s.phase='result';
+        s.res=msg.result;
+        s.reason=msg.reason;
+        s.cidx=msg.correctIdx;
+        s.opT=msg.opponentTime;
+        s.wager=msg.wager;
+        s.payout=msg.payout;
+        if(msg.opponentAnswer!=null)s.p2a=msg.opponentAnswer;
+        if(s.res==='win')s.wins++;
+        else if(s.res==='loss')s.losses++;
+        else s.draws++;
+        tGames++;
+        render(idx,s);
+        upStats();
 
-      if (msg.type === 'async-result') {
-        if (timerInterval) clearInterval(timerInterval);
-        state.phase = 'result';
-        state.result = msg.result;
-        state.reason = msg.reason;
-        state.correctIdx = msg.correctIdx;
-        state.oppTime = msg.opponentTime;
-        state.wager = msg.wager;
-        state.payout = msg.payout;
-        if (msg.opponentAnswer != null) state.p2Answer = msg.opponentAnswer;
-        totalGames++;
-        renderTile(idx, state);
-        updateStats();
-
-        // Auto-replay after 3 seconds
-        replayTimeout = setTimeout(() => {
-          if (stopped) return;
-          state.phase = 'queued';
-          state.matchId = null;
-          renderTile(idx, state);
-          ws.send(JSON.stringify({ type: 'queue', name, tier: tier || 4, wallet: null, paymentMode: 'none', onChainGameId: null }));
-        }, 3000);
+        // Auto-replay: show result 3s, then click Play Again
+        delay(()=>{
+          s.clickingReplay=true;
+          render(idx,s);
+          delay(()=>{
+            s.clickingReplay=false;
+            s.phase='landing';
+            s.pickingTier=null;
+            render(idx,s);
+            // Re-run landing flow
+            delay(()=>{
+              s.pickingTier=tier;
+              render(idx,s);
+              delay(()=>{
+                s.clickingPlay=true;
+                render(idx,s);
+                delay(()=>{
+                  s.clickingPlay=false;
+                  s.phase='joining';
+                  render(idx,s);
+                  ws.send(JSON.stringify({type:'queue',name,tier,wallet:null,paymentMode:'none',onChainGameId:null}));
+                },300);
+              },600);
+            },800);
+          },300);
+        },3000);
       }
     };
 
-    ws.onclose = () => {
-      if (!stopped) setTimeout(connect, 2000);
-    };
-    ws.onerror = () => {};
+    ws.onclose=()=>{if(!stopped)delay(connect,2000);};
+    ws.onerror=()=>{};
   }
 
-  function stop() {
-    stopped = true;
-    if (timerInterval) clearInterval(timerInterval);
-    if (answerTimeout) clearTimeout(answerTimeout);
-    if (replayTimeout) clearTimeout(replayTimeout);
-    if (ws) { ws.close(); ws = null; }
+  function stop(){
+    stopped=true;
+    timers.forEach(t=>clearTimeout(t));
+    if(tmr)clearInterval(tmr);
+    if(ws){ws.close();ws=null;}
   }
 
   connect();
-  return { state, stop };
+  return {s,stop};
 }
 
-let botIdx = 0;
-document.getElementById('add-btn').onclick = () => {
-  if (bots.length >= 10) return; // max 10
-  const grid = document.getElementById('grid');
-  if (botIdx === 0) { grid.innerHTML = ''; totalGames = 0; answerTimes = []; }
-  const tier = parseInt(document.getElementById('tier-select').value);
-  grid.appendChild(createTile(botIdx));
-  bots.push(createBot(botIdx, tier));
-  botIdx++;
-  document.getElementById('stop-btn').style.display = '';
-  updateStats();
-  // Update grid columns based on bot count
-  const cols = bots.length <= 2 ? bots.length : bots.length <= 4 ? 2 : bots.length <= 6 ? 3 : bots.length <= 9 ? 3 : 4;
-  grid.style.gridTemplateColumns = 'repeat(' + Math.min(5, bots.length) + ', 1fr)';
+document.getElementById('add-btn').onclick=()=>{
+  if(bots.length>=10)return;
+  const grid=document.getElementById('grid');
+  if(bidx===0){grid.innerHTML='';tGames=0;aTimes=[];}
+  const tier=parseInt(document.getElementById('tier').value);
+  const div=document.createElement('div');
+  div.className='tile';div.id='t-'+bidx;
+  div.innerHTML='<div class="tbody" style="color:#445566;font-size:10px">Starting...</div>';
+  grid.appendChild(div);
+  bots.push(mkBot(bidx,tier));
+  bidx++;
+  document.getElementById('stop-btn').style.display='';
+  upStats();
 };
 
-document.getElementById('stop-btn').onclick = () => {
-  bots.forEach(b => b.stop());
-  bots = [];
-  botIdx = 0;
-  document.getElementById('stop-btn').style.display = 'none';
-  document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Stopped. Click + Add Bot to begin again.</div>';
+document.getElementById('stop-btn').onclick=()=>{
+  bots.forEach(b=>b.stop());
+  bots=[];bidx=0;
+  document.getElementById('stop-btn').style.display='none';
+  document.getElementById('grid').innerHTML='<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px">Stopped. Click + Add Bot to start again.</div>';
 };
-
-// Init
-document.getElementById('grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#445566;padding:40px;">Click "+ Add Bot" to start spectating</div>';
 </script>
 </body></html>
